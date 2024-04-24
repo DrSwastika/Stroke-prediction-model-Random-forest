@@ -1,5 +1,5 @@
 
-## Data Analysis Report: Building and Deploying a Stroke Prediction Model in R
+## Enhancing Clinical Decision-Making with a Stroke Prediction Model using Random Forest in R
 
 **Introduction:**
 
