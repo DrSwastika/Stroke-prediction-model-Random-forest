@@ -193,7 +193,7 @@ We partition our dataset into training and test sets, allocating 75% of the data
 ```{r}
 # Check the class of stroke_clean
 class(stroke_clean)
-# Convert stroke_org to a data frame if it's not already
+# Convert stroke_org to a data frame 
 stroke_clean <- as.data.frame(stroke_clean)
 # Set seed for reproducibility
 set.seed(123)
@@ -440,7 +440,7 @@ In this deployment process, we transformed our stroke prediction model into a us
 
 ```{r}
 library(shiny)
-library(readr)  # For reading the final model
+library(readr)  
 
 # Load the final model
 final_model <- readRDS("C://Users//admin//Downloads//zWTIOyzKTSG0w5jU5Io_Nw_15c1635f70334a3a9d4b1ec2132e14f1_stroke-prediction//final_model.rds")
