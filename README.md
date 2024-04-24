@@ -33,3 +33,6 @@ The developed stroke prediction model was deployed as a user-friendly Shiny appl
 
 In conclusion, the analysis presented in this report demonstrates the successful development and deployment of a stroke prediction model using R. By leveraging machine learning techniques and comprehensive data analysis, we have created a valuable tool for identifying individuals at high risk of stroke and facilitating early intervention strategies. The deployed model holds promise for improving patient outcomes and advancing stroke prevention efforts in clinical settings.
 
+
+***I'm thrilled to share my first GitHub project. I would be delighted to hear your thoughts and feedback on the project. I am especially interested in feedback on the interface's usability.*** 
+***I've also included a supplementary file in the repository that contains all of the visualisations, model predictions, and a screenshot of the User Interface of the stroke prediction model.***
