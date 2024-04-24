@@ -91,8 +91,6 @@ head(stroke_clean)
 ```
 
 ```{r}
-# Convert the "bmi" column to numeric format
-stroke_clean$bmi <- as.numeric(stroke_clean$bmi)
 
 # Check for non-numeric values in the "bmi" column
 non_numeric_bmi <- stroke_clean[!is.na(stroke_clean$bmi) & !is.numeric(stroke_clean$bmi), "bmi"]
