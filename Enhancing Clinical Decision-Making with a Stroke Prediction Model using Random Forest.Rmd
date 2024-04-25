@@ -345,7 +345,7 @@ Having defined our recipe, model, and fine-tuned its parameters, we're prepared 
 library(tune)
 library(rsample)
 
-# Assuming rf_fit is a workflow object produced by tuning
+# rf_fit is a workflow object produced by tuning
 rf_fit <- rf_workflow %>%
   # fit on the training set and evaluate on test set
   last_fit(stroke_split)
