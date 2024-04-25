@@ -1,0 +1,533 @@
+---
+title: "Enhancing Clinical Decision-Making with a Stroke Prediction Model using Random Forest"
+author: "Dr.Swastika Rathore"
+date: "`16/4/2024`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# About Data Analysis Report
+
+This RMarkdown file contains the report of the data analysis done for the project on building and deploying a stroke prediction model in R. It contains analysis such as data exploration, summary statistics and building the prediction models. The final report was completed on `16/4/2024`.
+
+## Introduction:
+
+According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
+
+Our dataset comprises comprehensive clinical and demographic information collected from 5110 participants. Key features include age, gender, hypertension status, heart disease history, marital status, occupation type, residence type, average glucose level, body mass index (BMI), smoking status, and the target variable indicating stroke occurrence.
+
+### Objective:
+
+The primary objective of this project is to develop a robust and clinically applicable stroke prediction model using patient data.
+
+Once validated and tested, this predictive model will become integral to the organization's clinical decision-making process. It will enable the identification of patients at high risk of stroke, facilitating early intervention and prevention measures. Moreover, the model will track the progress of high-risk patients and monitor the effectiveness of preventive measures in reducing stroke incidence.
+
+# Import data and data pre-processing
+
+## Load data and install packages:
+
+```{r}
+#install packages
+
+install.packages("caret", "ggplot2", "dplyr", "tidyverse", "mice", "VIM", "mlr", "readr")
+library(VIM)
+library(mlr)
+library(mice)
+library(tidyverse)
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(readr)
+
+
+```
+
+```{r}
+#load dataset
+
+stroke_org <- read_csv("healthcare-dataset-stroke-data.csv")
+str(stroke_org)
+head(stroke_org)
+
+```
+
+Upon initial examination, the dataset presents a diverse array of clinical and demographic characteristics. However, it is evident that some entries contain missing values, indicating potential gaps in the data. To maintain the integrity and precision of our analysis, we prioritize data preprocessing using fundamental techniques. This preparatory step is crucial for ensuring the quality and validity of our findings. By addressing missing values and other data inconsistencies, we lay a solid foundation for robust and reliable analysis.
+
+## Describe and explore the data
+
+## Pre-processing of Dataset:
+
+we perform essential data cleaning tasks on the dataset to prepare it for analysis. Initially, we replace occurrences of "N/A" with NA in the 'bmi' column and "Unknown" with NA in the 'smoking_status' column. This standardization ensures uniformity and facilitates proper handling of missing data. Additionally, we address the classification of 'gender' by replacing "Other" values with NA, aligning with conventional gender classifications. Subsequently, we convert the 'bmi' column to numeric format and verify its integrity by checking for non-numeric values. Finally, missing values in the 'gender' column are imputed with the mode, enhancing the dataset's completeness. These cleaning steps ensure data consistency and reliability, laying a solid foundation for subsequent analysis and model development.
+
+```{r}
+#configure the dataset
+
+stroke_org$gender <- as.factor(stroke_org$gender)
+stroke_org$hypertension <- as.factor(stroke_org$hypertension)
+stroke_org$heart_disease <- as.factor(stroke_org$heart_disease)
+stroke_org$ever_married <- as.factor(stroke_org$ever_married)
+stroke_org$work_type <- as.factor(stroke_org$work_type)
+stroke_org$Residence_type <- as.factor(stroke_org$Residence_type)
+stroke_org$smoking_status <- as.factor(stroke_org$smoking_status)
+stroke_org$stroke <- as.factor(stroke_org$stroke)
+stroke_org$bmi <- as.numeric(stroke_org$bmi)
+stroke_org$age <- as.numeric(stroke_org$age)
+
+```
+
+```{r}
+
+# Replace "N/A" with missing values (NA) in the 'bmi' column
+stroke_clean <- mutate(stroke_org, bmi = ifelse(bmi == "N/A", NA, as.numeric(bmi)))
+
+# Replace "Unknown" with missing values (NA) in the 'smoking_status' column
+stroke_clean$smoking_status[stroke_clean$smoking_status == "Unknown"] <- NA
+stroke_clean$gender[stroke_clean$gender == "Other"] <- NA
+
+# Check the structure of the dataset after cleaning
+str(stroke_clean)
+head(stroke_clean)
+```
+
+```{r}
+
+# Check for non-numeric values in the "bmi" column
+non_numeric_bmi <- stroke_clean[!is.na(stroke_clean$bmi) & !is.numeric(stroke_clean$bmi), "bmi"]
+unique(non_numeric_bmi)
+
+# Replace missing values in the "gender" column with the mode
+mode_gender <- names(sort(table(stroke_clean$gender), decreasing = TRUE))[1]
+stroke_clean$gender[is.na(stroke_clean$gender)] <- mode_gender
+
+```
+
+we convert the 'stroke' column in the dataset to categorical labels: "negative" for 0 and "positive" for 1. This makes the data more interpretable. Using the 'ifelse' function, we assign labels based on the original values.
+
+```{r}
+# Replace 0 with "negative" and 1 with "positive"
+stroke_clean$stroke <- ifelse(stroke_clean$stroke == 0, "negative", "positive")
+
+# Check the first few rows 
+head(stroke_clean)
+
+# Check the column names in  dataset
+colnames(stroke_clean)
+
+```
+
+The MICE method is utilized to impute missing values within the 'stroke_clean' dataset, employing Multiple Imputation by Chained Equations. This approach generates multiple completed datasets, effectively replacing the missing values and strengthening the reliability of subsequent analyses.
+
+```{r}
+
+# Impute missing values using mice
+imputed_data <- mice(stroke_clean, m = 5, maxit = 50, method = "pmm", seed = 123)
+
+# Extract the completed datasets
+stroke_clean <- complete(imputed_data)
+
+```
+
+## Visualizing data set:
+
+To obtain a comprehensive visualization of our dataset, we crafted a series of plots organized into a grid format. This grid encompasses various aspects of our data, starting with a histogram depicting the distribution of age across participants. Following this, we incorporated bar plots illustrating the prevalence of hypertension, gender distribution, and smoking status within the dataset. Additionally, a box plot was included to visualize the distribution of average glucose levels across different stroke statuses. By arranging these plots into a grid, we offer a holistic perspective on key demographic and health-related factors present in our dataset, facilitating a more thorough exploration and understanding of the data.
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+# Histogram of Age
+hist_age <- ggplot(data = stroke_clean, aes(x = age)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Age", x = "Age", y = "Frequency") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12), axis.title.x = element_text(size = 10), axis.title.y = element_text(size = 10))
+
+# Bar Plot of Hypertension Status
+bar_hypertension <- ggplot(data = stroke_clean, aes(x = factor(hypertension), fill = factor(hypertension))) +
+  geom_bar() +
+  labs(title = "Hypertension Status", x = "Hypertension (0: No, 1: Yes)", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12), axis.title.x = element_text(size = 10), axis.title.y = element_text(size = 10))
+
+# Bar Plot of Gender
+bar_gender <- ggplot(data = stroke_clean, aes(x = gender, fill = gender)) +
+  geom_bar() +
+  labs(title = "Gender Distribution", x = "Gender", y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12), axis.title.x = element_text(size = 10), axis.title.y = element_text(size = 10))
+
+# Box Plot of Average Glucose Level by Stroke Status
+box_glucose_stroke <- ggplot(data = stroke_clean, aes(x = stroke, y = avg_glucose_level, fill = stroke)) +
+  geom_boxplot() +
+  labs(title = "Average Glucose Level by Stroke Status", x = "Stroke", y = "Average Glucose Level") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10), axis.title.x = element_text(size = 10), axis.title.y = element_text(size = 10))
+
+#Bar Plot of Smoking Status
+
+bar_smoking <- ggplot(data = stroke_clean, aes(x = smoking_status, fill = stroke)) +
+  geom_bar() +
+  labs(title = "Smoking Status Distribution", x = "Smoking Status", y = "stroke") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 8), 
+        axis.title.x = element_text(size = 8), 
+        axis.title.y = element_text(size = 8),
+        axis.text.x = element_text(size = 5.5))  
+
+
+
+# Arrange plots into a grid
+grid.arrange(hist_age, bar_hypertension, bar_gender, box_glucose_stroke, bar_smoking, ncol = 2)
+
+```
+
+The visualizations provide insightful observations regarding the demographics and health attributes of the dataset. Firstly, it's evident that the majority of individuals fall within the age group of 45 to 60, with a notable peak around 80 years. Regarding hypertension, it appears that a larger proportion do not have hypertension. The population distribution in the dataset reveals a notable gender imbalance, with a larger representation of females, approximately 3000 individuals, compared to males, numbering around 2500. Furthermore, the box plot of average glucose levels suggests a potential correlation between higher glucose levels and increased stroke risk, indicating a need for further investigation into this relationship. Surprisingly, the analysis of smoking status suggests that it has minimal impact on stroke prediction, with little variation observed across different smoking categories. Notably, the bar plot highlights that a significant portion, exceeding 3000 individuals, have never smoked cigarettes, indicating a substantial non-smoking population within the dataset. These findings shed light on important patterns within the data, providing valuable insights for further exploration and analysis.
+
+# Build Prediction Model
+
+## Splitting the data in to Training and Test:
+
+We partition our dataset into training and test sets, allocating 75% of the data for training purposes and reserving the remaining 25% for testing. The training dataset is employed for model fitting and parameter tuning, while the testing dataset serves to assess the performance of our final model. Specifically, the output dataframe indicates that our training set comprises 3832 observations, with the test set containing 1278 observations.
+
+```{r}
+# Check the class of stroke_clean
+class(stroke_clean)
+# Convert stroke_org to a data frame 
+stroke_clean <- as.data.frame(stroke_clean)
+# Set seed for reproducibility
+set.seed(123)
+
+library(rsample)
+
+# Split the data into training (75%) and testing (25%)
+stroke_split <- initial_split(stroke_clean, prop = 3/4)
+stroke_split
+
+```
+
+```{r}
+# extract training and testing sets
+stroke_train <- training(stroke_split)
+stroke_test <- testing(stroke_split)
+
+```
+
+To facilitate cross-validation for tuning, we generate a cross-validation (CV) object from the training dataset using the vfold_cv() function. This CV object enables us to systematically partition the training data into multiple folds, allowing us to iteratively validate and refine our model parameters.
+
+```{r}
+# create CV object from training data
+stroke_cv <- vfold_cv(stroke_train)
+```
+
+### Define Recipe:
+
+Defining the recipe enables us to assign roles to each variable, clarifying whether they act as predictors or outcomes in our analysis. In this case, we've specified a formula incorporating ten outcome predictors, including gender, age, hypertension, heart disease, marital status, type of work, residence type, glucose level, BMI, and smoking status. Following this definition, we apply the recipe to our training dataset. This process ensures that each variable is appropriately handled according to its role and undergoes necessary preprocessing steps, such as normalization and imputation. By applying the recipe, we streamline the data preparation process, setting the stage for accurate model training and prediction.
+
+```{r}
+# Define the recipe
+library(recipes)
+stroke_recipe <- 
+  # Specify the formula (outcome ~ predictors)
+  recipe(stroke ~gender + age + hypertension + heart_disease + ever_married + work_type + Residence_type + avg_glucose_level + bmi + smoking_status, data = stroke_clean) %>%
+  # Apply preprocessing steps
+  step_normalize(all_numeric()) %>%
+  # Impute missing values using k-nearest neighbors
+  step_impute_knn(all_predictors())
+
+# View the recipe
+stroke_recipe
+
+
+```
+
+```{r}
+stroke_train_preprocessed <- stroke_recipe %>%
+  # apply the recipe to the training data
+  prep(stroke_train) %>%
+  # extract the pre-processed training dataset
+  juice()
+stroke_train_preprocessed
+
+
+```
+
+# Apply and Evaluate Random Forest Model.
+
+Firstly, we specify that our model is a random forest by calling. We then indicate that we want to tune the **`mtry`** parameter, which controls the number of variables randomly sampled as candidates at each split in the tree-building process.
+
+Next, we select the underlying engine or package for our model, which is ranger in this case, a fast implementation of random forests. We specify that we want to use impurity-based importance measures for feature selection.
+
+Lastly, we set the mode of our model to classification. This ensures that the model is configured to perform binary classification tasks, where the outcome variable has two categories.
+
+```{r}
+library(ranger)
+library(randomForest)
+library(parsnip)
+
+rf_model <- 
+  # specify that the model is a random forest
+  rand_forest() %>%
+  # specify that the `mtry` parameter needs to be tuned
+  set_args(mtry = tune()) %>%
+  # select the engine/package that underlies the model
+  set_engine("ranger", importance = "impurity") %>%
+  # choose either the continuous regression or binary classification mode
+  set_mode("classification") 
+
+
+```
+
+## Workflow:
+
+We're now at the stage where we combine the model and recipes into a cohesive workflow. This involves initializing a workflow using the `workflow()` function from the from the `workflows` package. Subsequently, we add a recipe and a model to this workflow. This integration allows us to seamlessly apply preprocessing steps defined in the recipe to our data before training the model. In essence, the workflow encapsulates both the data preprocessing and modeling steps, streamlining the overall process of building and evaluating our predictive model.
+
+```{r}
+library(workflows)
+# set the workflow
+rf_workflow <- workflow() %>%
+  # add the recipe
+  add_recipe(stroke_recipe) %>%
+  # add the model
+  add_model(rf_model)
+rf_workflow
+
+```
+
+## Tune Parameters:
+
+As we had a parameter designated for tuning, specifically the **`mtry`** parameter, it's necessary to find the optimal value that leads to the best performance before fitting our model. This involves systematically evaluating different values for **`mtry`** and selecting the one that maximizes the performance metrics of our model. By tuning this parameter, we aim to enhance the predictive accuracy and robustness of our model, ensuring it performs optimally on unseen data.
+
+```{r}
+library(tune)
+library(yardstick)
+
+# specify which values to try
+rf_grid <- expand.grid(mtry = c(4,5,6))
+# extract results
+rf_tune_results <- rf_workflow %>%
+  tune_grid(resamples = stroke_cv, #CV object
+            grid = rf_grid, # grid of values to try
+            metrics = metric_set(accuracy, roc_auc) # metrics we care about
+            )
+
+```
+
+```{r}
+# print results
+rf_tune_results %>%
+  collect_metrics()
+```
+
+Across both accuracy and AUC, `mtry = 4` yields the best performance in terms of mean and standard error.
+
+# Deploy the prediction model
+
+## Finalize workflow:
+
+We aim to integrate a layer into our workflow that corresponds to the tuned parameter, specifically setting **`mtry`** to the value that produced the best results. Subsequently, we incorporate this parameter into the workflow using the `finalize_workflow()` function. This step ensures that our model incorporates the optimized parameter settings, maximizing its predictive performance and robustness.
+
+```{r}
+param_final <- rf_tune_results %>%
+  select_best(metric = "accuracy")
+param_final
+
+rf_workflow <- rf_workflow %>%
+  finalize_workflow(param_final)
+head(rf_workflow)
+```
+
+## Evaluating Model on Test Set:
+
+Having defined our recipe, model, and fine-tuned its parameters, we're prepared to fit the final model. With all this information encapsulated within the workflow object, we can utilize the `last_fit()` function, applying it to our workflow along with the train/test split object. This process automatically trains the model specified by the workflow using the training data and generates evaluations based on the test set.
+
+```{r}
+library(tune)
+library(rsample)
+
+# Assuming rf_fit is a workflow object produced by tuning
+rf_fit <- rf_workflow %>%
+  # fit on the training set and evaluate on test set
+  last_fit(stroke_split)
+
+
+
+```
+
+Using the train/test object during workflow fitting allows evaluation of metrics on the test set. `collect_metrics()` gathers these metrics, including accuracy, AUC, and Brier score, for assessing model performance.
+
+```{r}
+test_performance <- rf_fit %>% collect_metrics()
+
+test_performance
+
+
+```
+
+With an accuracy of 0.94 and an AUC of 0.81, the model demonstrates strong predictive capabilities. A high accuracy indicates that the model's predictions align well with the actual outcomes, while the AUC score reflects its ability to discriminate between positive and negative instances effectively.
+
+A Brier score of 0.04 suggests that the model's predicted probabilities closely align with the true probabilities of stroke occurrence. This level of calibration enhances the model's reliability and can instill confidence in its probability estimates.
+
+Additionally, we extract test predictions using the `collect_predictions()` function.
+
+```{r}
+# generate predictions from the test set
+test_predictions <- rf_fit %>% collect_predictions()
+test_predictions
+```
+
+As this is a standard data frame/tibble object, we can create summaries and plots like a confusion matrix.
+
+This confusion matrix summarizes the model's performance by comparing predicted values against actual outcomes. It shows that the model correctly predicted 1211 instances as negative and incorrectly classified 67 instances as negative when they were positive. Notably, it did not predict any positive instances correctly.
+
+```{r}
+# generate a confusion matrix
+test_predictions %>% 
+  conf_mat(truth = stroke, estimate = .pred_class)
+
+test_predictions
+
+
+```
+
+## Plot:
+
+These density plots visualize the distribution of predicted probabilities for each class (positive and negative). The first plot depicts the density of predicted probabilities for positive outcomes, while the second plot illustrates the distribution for negative outcomes. In each plot, the x-axis represents the predicted probability, and the y-axis represents the density of observations at each probability level. T These plots provide insights into the model's confidence in its predictions and the separation between the two classes based on predicted probabilities.
+
+```{r}
+library(ggplot2)
+
+# Plot density of probablity of prediction being Positive 
+ggplot(data = test_predictions) +
+  geom_density(aes(x = .pred_positive, fill = stroke), alpha = 0.5) +
+  labs(x = "Predicted Probability of prediction being Positive ", y = "Density", fill = "Stroke")
+
+```
+
+```{r}
+# Plot density of predicted probabilities for class Negative
+ggplot(data = test_predictions) +
+  geom_density(aes(x = .pred_negative, fill = stroke), alpha = 0.5) +
+  labs(x = "Predicted Probability of Prediction being Negative", y = "Density", fill = "Stroke")
+```
+
+By applying `pull()` to the .predictions column of rf_fit, test_predictions now contains the predicted outcomes for each observation in the test set. This concise approach streamlines the extraction of prediction data, enhancing code readability and efficiency.
+
+```{r}
+test_predictions <- rf_fit %>% pull(.predictions)
+test_predictions
+```
+
+## Fitting Final Model:
+
+To complete the model fitting process and preserve it for future use, we employed the fit() function. This function enables the final model, defined within the rf_workflow, to be trained using the stroke_clean dataset. Upon execution, final_model holds the trained model, encapsulating the learned patterns and relationships within the data. This fitted model is crucial for making predictions on new data instances with similar characteristics.
+
+Subsequently, we safeguarded the finalized model for future deployment by utilizing the `saveRDS()`function.
+
+```{r}
+final_model <- fit(rf_workflow, stroke_clean)
+
+final_model
+
+# Save the final model
+saveRDS(final_model, "final_model.rds")
+
+```
+
+## Deploying Model:
+
+In this deployment process, we transformed our stroke prediction model into a user-friendly Shiny application. First, we loaded the final model from the saved final model. Then, we designed a simple yet intuitive user interface allowing users to input their relevant health data. The server logic processed these inputs, utilizing the model to generate predictions on stroke risk. The prediction result, translated into easily understandable terms, was displayed back to the user. Finally, we deployed the application, making it accessible for real-world use. This deployment marks the culmination of our project, offering a practical tool for clinicians and individuals to assess stroke risk quickly and efficiently.
+
+```{r}
+library(shiny)
+library(readr)  # For reading the final model
+
+# Load the final model
+ final_model <- readRDS("/cloud/project/final_model.rds")
+# Define the UI
+ui <- fluidPage(
+  titlePanel("Stroke Prediction"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("age", "Age:", value = 50),
+      numericInput("hypertension", "Hypertension (1 for yes, 0 for no):", value = 0),
+      numericInput("heart_disease", "Heart Disease (1 for yes, 0 for no):", value = 0),
+      radioButtons("ever_married", "Ever Married:", choices = c("Yes", "No"), selected = "Yes"),
+      selectInput("work_type", "Work Type:", choices = c("Private", "Self-employed", "Govt_job", "children", "Never_worked")),
+      selectInput("Residence_type", "Residence Type:", choices = c("Urban", "Rural")),
+      selectInput("smoking_status", "Smoking Status:", choices = c("formerly smoked", "never smoked", "smokes", "Unknown")),
+      numericInput("avg_glucose_level", "Average Glucose Level:", value = 100),
+      numericInput("bmi", "BMI:", value = 28.5),
+      radioButtons("gender", "Gender:", choices = c("Male", "Female", "Other"), selected = "Male"), actionButton("submit", "Submit")
+    ),
+    mainPanel(
+      h3("Prediction Result:"),
+      textOutput("prediction")
+    )
+  )
+)
+# Define the server logic
+server <- function(input, output) {
+  # Create a reactive expression for prediction
+  prediction <- reactive({
+    # Check if smoking_status input is provided
+    if (is.null(input$smoking_status) || input$smoking_status == "") {
+      return("Please select a smoking status.")
+    }
+    
+    # Create a new data frame with user input
+    new_data <- data.frame(
+      age = input$age,
+      hypertension = factor(input$hypertension, levels = c(0, 1)),
+      heart_disease = factor(input$heart_disease, levels = c(0, 1)),
+      ever_married = input$ever_married,
+      work_type = input$work_type,
+      Residence_type = input$Residence_type,
+      avg_glucose_level = input$avg_glucose_level,
+      bmi = input$bmi,
+      smoking_status = factor(input$smoking_status, levels = c("formerly smoked", "never smoked", "smokes", "Unknown")),
+      gender = input$gender
+    )
+    
+    # Print out the input data
+    print(new_data)
+    
+    # Make predictions using the final model
+    prediction <- predict(final_model, new_data)
+    
+    # Print out the predictions
+    print(prediction)
+    
+    # Return the prediction
+    prediction
+  })
+  
+  # Render the prediction
+  output$prediction <- renderText({
+    # Extract the prediction result
+    result <- prediction()
+    
+    # If smoking_status input is missing, return error message
+    if (is.character(result)) {
+      return(result)
+    }
+    
+    # Convert prediction to label
+    prediction_label <- ifelse(result == "negative", "Negative", "Positive")
+    
+    # Return the prediction
+    paste("Predicted Stroke Risk:", prediction_label)
+  })
+}
+
+# Run the application
+shinyApp(ui = ui, server = server)
+```
+
+# Conclusions:
+
+The input data provided in our model consists of various attributes related to an individual's health status, including whether they have hypertension or heart disease, marital status, occupation type, residence type, average glucose level, body mass index (BMI), smoking status, and gender.
+
+For instance, in this specific instance, the individual is 50 years old, without hypertension or heart disease, married, working in the private sector, residing in an urban area, with an average glucose level of 100 mg/dL, a BMI of 28.5, a history of formerly smoking, and is male. Based on this data, the prediction class indicates that the individual is classified as **"negative,"** implying a lower risk of stroke.
+
+# 
