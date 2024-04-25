@@ -1,7 +1,7 @@
 ---
 title: "Enhancing Clinical Decision-Making with a Stroke Prediction Model using Random Forest"
 author: "Dr.Swastika Rathore"
-date: "`16/4/2024`"
+date: "`24/4/2024`"
 output:
   pdf_document: default
   html_document: default
@@ -9,7 +9,7 @@ output:
 
 # About Data Analysis Report
 
-This RMarkdown file contains the report of the data analysis done for the project on building and deploying a stroke prediction model in R. It contains analysis such as data exploration, summary statistics and building the prediction models. The final report was completed on `16/4/2024`.
+This RMarkdown file contains the report of the data analysis done for the project on building and deploying a stroke prediction model in R. It contains analysis such as data exploration, data preprocessing, building and deploying the prediction models. The final report was completed on `24/4/2024`.
 
 ## Introduction:
 
@@ -345,7 +345,7 @@ Having defined our recipe, model, and fine-tuned its parameters, we're prepared 
 library(tune)
 library(rsample)
 
-# Assuming rf_fit is a workflow object produced by tuning
+#rf_fit is a workflow object produced by tuning
 rf_fit <- rf_workflow %>%
   # fit on the training set and evaluate on test set
   last_fit(stroke_split)
@@ -528,6 +528,6 @@ shinyApp(ui = ui, server = server)
 
 The input data provided in our model consists of various attributes related to an individual's health status, including whether they have hypertension or heart disease, marital status, occupation type, residence type, average glucose level, body mass index (BMI), smoking status, and gender.
 
-For instance, in this specific instance, the individual is 50 years old, without hypertension or heart disease, married, working in the private sector, residing in an urban area, with an average glucose level of 100 mg/dL, a BMI of 28.5, a history of formerly smoking, and is male. Based on this data, the prediction class indicates that the individual is classified as **"negative,"** implying a lower risk of stroke.
+ In this specific instance, the individual is 50 years old, without hypertension or heart disease, married, working in the private sector, residing in an urban area, with an average glucose level of 100 mg/dL, a BMI of 28.5, a history of formerly smoking, and is male. Based on this data, the prediction class indicates that the individual is classified as **"negative,"** implying a lower risk of stroke.
 
 # 
