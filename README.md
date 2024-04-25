@@ -35,4 +35,4 @@ In conclusion, the analysis presented in this report demonstrates the successful
 
 
 ***I'm thrilled to share my first GitHub project. I would be delighted to hear your thoughts and feedback on the project. I am especially interested in feedback on the interface's usability.*** 
-***I've also included a supplementary file in the repository that contains all of the visualisations, model predictions, and a screenshot of the User Interface of the stroke prediction model.***
+***I've also included a supplementary file in the repository that contains all of the visualisations, model predictions, and a screenshot of the User Interface of the stroke prediction model along with the StrokeAlert Application.***
